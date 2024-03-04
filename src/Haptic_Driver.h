@@ -1,3 +1,12 @@
+/*
+ * ----------------------------------------------------------------------------
+ * "THE BEER-WARE LICENSE" (Revision 42):
+ * <kenichiro.sameshima@alpsalpine.com> wrote this file. As long as you retain this notice you
+ * can do whatever you want with this stuff. If we meet some day, and you think
+ * this stuff is worth it, you can buy me a beer in return Poul-Henning Kamp
+ * ----------------------------------------------------------------------------
+ */
+
 #ifndef _SPARKFUN_HAPTIC_DRIVER_DA7280_
 #define _SPARKFUN_HAPTIC_DRIVER_DA7280_
 
@@ -43,14 +52,23 @@ typedef enum {
 
 } event_t;
 
+typedef enum
+{
+  NO_WARN_DIAG = 0x00,
+  E_OVERTEMP_WARN = 0x08,
+  E_MEM_TYPE = 0x10,
+  E_LIM_DRIVE_ACC = 0x40,
+  E_LIM_DRIVE = 0x80
+} warn_diag_status_t;
+
 typedef enum {
 
-  NO_DIAG = 0x00,
+  NO_SEQ_DIAG = 0x00,
   E_PWM_FAULT = 0x20,
   E_MEM_FAULT = 0x40,
   E_SEQ_ID_FAULT = 0x80
 
-} diag_status_t;
+} seq_diag_status_t;
 
 typedef enum {
 
@@ -184,12 +202,19 @@ class Haptic_Driver
     bool setActuatorNOMVolt(float);
     float getActuatorNOMVolt();
     bool setActuatorIMAX(float);
-    uint16_t getActuatorIMAX();
+    float getActuatorIMAX();
     bool setActuatorImpedance(float);
-    uint16_t getActuatorImpedance();
+    float getActuatorImpedance();
     uint16_t readImpAdjus();
     bool setActuatorLRAfreq(float);
-    bool enableCoinERM();
+    float getActuatorLRAfreq();
+    bool setLoopFilterCapTrim(float);
+    uint8_t getLoopFilterCapTrim();
+    bool setLoopFilterResTrim(float);
+    uint8_t getLoopFilterResTrim();
+    bool enableDoubleRange(bool);
+    bool enableLoopFiltLowBandwidth(bool);
+    bool enableEmbeddedOperation(uint8_t);
     bool enableAcceleration(bool);
     bool enableRapidStop(bool);
     bool enableAmpPid(bool);
@@ -197,25 +222,19 @@ class Haptic_Driver
     bool setBemfFaultLimit(bool);
     bool enableV2iFactorFreeze(bool);
     bool calibrateImpedanceDistance(bool);
-    bool setVibrate(uint8_t);
-    uint8_t getVibrate();
-    float getFullBrake();
-    bool setMask(uint8_t);
-    uint8_t getMask();
-    bool setFullBrake(uint8_t);
+    bool setVibratePower(uint8_t);
+    uint8_t getVibratePower();
+    bool setFullBrakeThreshold(uint8_t);
+    float getFullBrakeThreshold();
     bool setBemf(uint8_t val);
     float getBemf();
-    void createHeader(uint8_t, uint8_t);
-    void clearIrq(uint8_t);
-    bool addSnippet(uint8_t ramp = RAMP, uint8_t amplitude = 2, uint8_t timeBase = 2);
-    bool addSnippet(uint8_t snippets[], uint8_t);
-    void eraseWaveformMemory(uint8_t);
+    void clearIrqEvent(uint8_t);
     event_t getIrqEvent();
-    diag_status_t getEventDiag();
+    uint8_t getEventWarningDiag();
+    seq_diag_status_t getEventSeqDiag();
     status_t getIrqStatus();
-    bool playFromMemory(bool enable = true);
-    bool setSeqControl(uint8_t, uint8_t);
-    uint8_t addFrame(uint8_t, uint8_t, uint8_t);
+    bool setIrqMask(uint8_t);
+    uint8_t getIrqMask();
 
     hapticSettings sparkSettings;
 
@@ -225,6 +244,7 @@ class Haptic_Driver
     
     // Private Variables
     uint8_t _address;
+    TwoWire *_i2cPort;
 
     // This generic function handles I2C write commands for modifying individual
     // bits in an eight bit register. Paramaters include the register's address, a mask 
@@ -232,37 +252,9 @@ class Haptic_Driver
     // position.
     bool _writeRegister(uint8_t, uint8_t, uint8_t, uint8_t);
 
-    // Consecutive Write Mode: I2C_WR_MODE = 0
-    // Allows for n-number of writes on consecutive registers, beginning at the
-    // given register. 
-    // This particular write does not care what is currently in the register and
-    // overwrites whatever is there.
-    bool _writeConsReg(uint8_t regs[], size_t);
-
-    // Non-Consecutive Write Mode: I2C_WR_MODE = 1
-    // Allows for n-number of writes on non-consecutive registers, beginning at the
-    // given register but able to jump locations by giving another address. 
-    // This particular write does not care what is currently in the register and
-    // overwrites whatever is there.
-    bool _writeNonConsReg(uint8_t regs[], size_t);
-
-    // This generic function does a basic I-squared-C write transaction at the
-    // given address, and writes the given _command argument. 
-    void _writeCommand(uint8_t);
-
-    bool _writeWaveFormMemory(uint8_t waveFormArray[]);
-
     // This generic function reads an eight bit register. It takes the register's
     // address as its' parameter. 
     uint8_t _readRegister(uint8_t);
-
-    bool _readConsReg(uint8_t regs[], size_t);
-    bool _readNonConsReg(uint8_t regs[], size_t);
-    // This generic function does a basic I-squared-C read transaction at the given
-    // addres, taking the number of reads as argument. 
-    uint8_t _readCommand(uint8_t);
-
-
-    TwoWire *_i2cPort;
 };
-#endif
+
+#endif  // _SPARKFUN_HAPTIC_DRIVER_DA7280_
